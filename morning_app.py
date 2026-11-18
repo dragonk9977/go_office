@@ -210,32 +210,39 @@ def main_frag():
     st.caption(f"{datetime.fromtimestamp(v['t'], KST):%H:%M:%S} 조회 ({int(v['el'])}초 전) · 출발 "
                f"{'지금' if not offset else f'{offset}분 뒤'} 기준 · API {api_counter()['n']}/{DAILY_LIMIT}")
 
+    walk = next(t for t in trips if t.key == "walk")
     if best:
         mins = round((best.arrive_sec - start) / 60)
-        if best.key == "walk":
-            go = "지금 바로 출발해서 끝까지 걸어가세요" if not offset else f"{offset}분 뒤에 출발해서 걸어가세요"
-        else:
-            li = best.leave_in_sec
-            go = (f"{best.steps[1].text.split(' · ')[0]} {mmss(best.first_bus_eta)} 후 도착 · "
-                  + ("지금 바로 출발해야 해요!" if li <= 0 else f"늦어도 <b>{mmss(li)}</b> 안에 집에서 출발"))
+        li = best.leave_in_sec
+        go = (f"{best.steps[1].text.split(' · ')[0]} {mmss(best.first_bus_eta)} 후 도착 · "
+              + ("지금 바로 출발해야 해요!" if li <= 0 else f"늦어도 <b>{mmss(li)}</b> 안에 집에서 출발"))
+        diff = round((walk.arrive_sec - best.arrive_sec) / 60)
+        cmp_txt = (f"전구간 도보보다 {diff}분 빨라요" if diff > 0 else
+                   f"전구간 도보({walk_all}분)가 {-diff}분 더 빨라요" if diff < 0 else "전구간 도보와 도착 시각이 같아요")
         st.markdown(
-            f'<div class="hero"><div class="hl">가장 빨리 도착하는 루트</div>'
+            f'<div class="hero"><div class="hl">가장 빨리 도착하는 대중교통 루트</div>'
             f'<div class="ht">{H.escape(best.name)}</div>'
             f'<div class="big">{hm(best.arrive_sec)}<span class="sm"> 회사 도착 · 소요 {mins}분</span></div>'
-            f'<div class="hs">{go}</div></div>', unsafe_allow_html=True)
+            f'<div class="hs">{go}<br>{cmp_txt}</div></div>', unsafe_allow_html=True)
     else:
-        st.warning("지금은 비교할 수 있는 루트가 없어요.")
+        st.warning("지금은 비교할 수 있는 대중교통 루트가 없어요.")
 
-    ordered = sorted(trips, key=lambda t: (t.arrive_sec is None, t.arrive_sec or 0))
+    transit = sorted([t for t in trips if t.key != "walk"], key=lambda t: (t.arrive_sec is None, t.arrive_sec or 0))
+    ordered = transit + [walk]                      # 전구간 도보는 비교용으로 맨 뒤
     cols = st.columns(2)
     for n, tr in enumerate(ordered):
         with cols[n % 2]:
+            is_walk = tr.key == "walk"
             color = COLORS.get(tr.key, "#555")
-            tag = '<span class="tag">추천</span>' if tr is best else ""
+            tag = '<span class="tag">추천</span>' if tr is best else ('<span class="tag" style="background:#6b7280">비교용</span>' if is_walk else "")
             if tr.arrive_sec is None:
                 body = f'<div class="gap">⚠️ {H.escape(tr.note)}</div>'
             else:
-                gap = "" if tr is best or not best else f'<div class="gap">추천보다 {round((tr.arrive_sec - best.arrive_sec) / 60)}분 늦음</div>'
+                if tr is best or not best:
+                    gap = ""
+                else:
+                    d = round((tr.arrive_sec - best.arrive_sec) / 60)
+                    gap = f'<div class="gap">추천 루트보다 {abs(d)}분 {"늦음" if d > 0 else "빠름" if d < 0 else "차이 없음"}</div>'
                 body = (f'<div class="big">{hm(tr.arrive_sec)}<span class="sm"> 도착 · 소요 {round((tr.arrive_sec - start) / 60)}분</span></div>'
                         f'{gap}{"".join(step_html(s, hm) for s in tr.steps)}')
             st.markdown(f'<div class="card{" best" if tr is best else ""}"><div class="hd">'
