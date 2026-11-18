@@ -83,12 +83,12 @@ def setting(key, label, lo, hi, default, step=1):
 
 if st.checkbox("⚙️ 설정 (출발 시각 · 도보 시간 · 대략 주행시간)", key="show_set"):
     offset = setting("offset", "몇 분 뒤에 집에서 출발할까요? (0 = 지금)", 0, 30, 0)
-    walk_all = setting("walk_all", "전구간 도보 시간(분) — 카카오맵 도보 길찾기로 확인해 입력", 5, 90, 40)
+    walk_all = setting("walk_all", "전구간 도보 시간(분)", 5, 90, 26)
     st.caption("아래는 실시간 주행시간을 못 구했을 때만 쓰는 대략값이에요.")
     fb = {r: setting("fb_" + r, f"{r}번 버스 탑승 시간(분)" if r != "금천07" else "금천07 탑승 시간(분)", 2, 40, d)
           for r, d in FALLBACK.items()}
 else:
-    offset, walk_all = S("offset", 0), S("walk_all", 40)
+    offset, walk_all = S("offset", 0), S("walk_all", 26)
     fb = {r: S("fb_" + r, d) for r, d in FALLBACK.items()}
 
 
