@@ -81,5 +81,6 @@ def plan_all(c, arr_first, arr_second, ride_fn, walk_all_min, offset_min=0):
 
 
 def best_trip(trips):
-    ok = [t for t in trips if t.arrive_sec is not None]
+    """대중교통 루트 중 가장 빨리 도착하는 루트 (전구간 도보는 비교용이라 제외)"""
+    ok = [t for t in trips if t.arrive_sec is not None and t.key != "walk"]
     return min(ok, key=lambda t: t.arrive_sec) if ok else None
